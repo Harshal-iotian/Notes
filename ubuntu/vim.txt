@@ -1,0 +1,16 @@
+To open or create a new file using Vi/Vim, simply type the commands below, then press i to switch to insert mode (insert text):
+$ vim file.txt
+OR
+$ vi file.txt
+
+After making changes to a file, press [Esc] to shift to the command mode and press :w and hit [Enter] to save a file.
+To exit Vi/Vim, use the :q command and hit [Enter].
+
+To save a file and exit Vi/Vim simultaneously, use the :wq command and hit [Enter] or :x command.
+
+If you make changes to a file but try to quite Vi/Vim using ESC and q key, you’ll receive an error as shown in the scrrenshot below.
+To force this action, use ESC and :q!.
+Additionally, you can use shortcut methods. Press the [Esc] key and type Shift + Z Z to save and exit or type Shift+ Z Q to exit without saving the changes made to the file.
+Having learned the above commands, you can now proceed to learn advanced Vim commands from the links provided below:
+https://www.tecmint.com/learn-vi-and-vim-editor-tips-and-tricks-in-linux/
+https://www.tecmint.com/how-to-use-vi-and-vim-editor-in-linux/
