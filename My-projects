@@ -1,0 +1,150 @@
+People count and Estimating Social Distances from CCTV cameras in real time
+
+    • Use Case: This project we develped was for a manufacturing factory, where there requirement was to count the number of workers working in the factory and even monitoring the social distances norms during pandemic time.
+    • Data: We were given the CCTV access of the factory from the client. We developed data on our own, we downloaded the some CCTV video streams with all the variations like morning, afternoon, evening and night with different lighting condintions. Then we extracted the frames to create image data. Then after we labeled this data using LableImg and makesense.ai tool in PASCAL VOC format, basically this format is a XML format. Then we used this data to train my model.
+    • Algorithm: In order develop a solution for this use case, I  implemented Faster-RCNN with inceptionV2 as a backbone of the model, since it has 28 mAP on COCO and 58 ms processing speed tested on Nvidia GeForce GTX TITAN X card.
+      
+    • Different libraries used to develop the solution: 
+        1. TensorFlow-Keras framework: To develop AI model for human detection
+        2. OpenCV : To get bird’s eye view (post-processing). Applying geometric transformations in our case we applied, matrix=cv2.getPerspectiveTransform(cordinates of the image patch as a argument) and 
+           result=cv2.WarpPerspective(frame, matrix, size) transformation to get top view.
+        3. SciPy : To calculate pairwise distances among all the detected humans
+    • The deployment of the model is in progress, we are planning to deploy it with the NVIDIA’s Jetson Nano embedded system.
+    • Brief about Faster-RCNN: The structure or topology of the Faster-RCNN is like it has 3 main components, Backbone, neck and head. The backbone is mainly for feature extraction from the given input images, in my case it is InceptionNetV2. 
+        1. Backbone: 
+            1. InceptionNetV2: We used inceptionNetV2 as a backbone or as a feature extractor in Objct detection algorithm. InceptionNet rather focuses on the broder architecture than deeper which most of the algorithms focuses on deeper networks. The main notion of this InceptionNet topology is since the information can be located anywhere in the given image which can be extracted using different kernel sizes, like it uses 1x1, 3x3 and 5x5 kernels to extract the information. Since we use different number of filters for each kernel, it increases the number of parameters to be optimized, that is why we use 1x1 convolutions to reduce the number of parameters. Along with these 3 kernels’ operation we do 3x3 max pooling then we concatenate the all outputs before passing to the next layer. Then, there is a kernel factorizing technique which further reduces the total number of parameters to be optimized.  
+            2. Architecture: GoogleNet has 9 Inception modules stacked linearly. It is 22 layers deep (27, including the pooling layers). It uses global average pooling at the end of the last inception module. To prevent the middle part of the network from vanishing gradient, two auxiliary classifiers are introduced. Auxiliary loss is purely used for training purpose and is ignored during inference.
+        2. Neck: It contains Achor box generator and region proposal network, with the help of this Neck part sample RoIs are generated containing some objects to be detected. This RPN netowork is trained to classify agnostically different patches of images generated with the help of anchor boxes. Then, There might be multiple anchor boxes for single object. There we apply Non-Max-Supression (NMS) which first select the one bounding box with highest confidence score, supress others only where Intersection Over Union is more than 50%. Thus, after this process the resized ROIs are passed to the head part.
+        3. Head: In the head part we have an object classifier and a bounding box regressor which tries to give more accurate class along with bounding box.
+    • Loss: Loss is calculated at different levels, at RPN using binary_cross_entropy, at bounding-box regression using mean squared error, and classification using multi-class-cross-entropy.
+
+    • Challenges: 
+        1. Matching of uniform color of the workers with the background
+        2. Detecting tiny appearing workers due to far view from the camera
+        3. Occluded view of the workers 
+
+
+Interview Questions:
+    1. How will you fix the detector when it’s not recognizing some particular class?
+       Ans: There is no any thumb rule as such to address such issue. First we need to find out the root cause of the issue. Let’s consider few issues like:
+        1.  If the particular class is occuring very less number of times in the whole dataset, then probably we can say this is the class imbalance problem. Then, We need to balance the data for that particular class in order to improve the learning of the model for that class.
+        2. Sometimes, that particular class objects can be of very small size that is small Object to Image ratio, in this case, we have to have images of good resolution and even we need to use smaller filters to gain/extract feature information from that small object.
+        3. Some other issues like the background color can match with the object color, in such case there will not be proper gradient flow and learning might not happen. Therefore, we can convert the images into grayscale in the pre-processing and train the model.
+    2. How are you evaluating your objet detection model?
+       Ans: To evaluate object detection models like R-CNN and YOLO, the mean average precision (mAP) is used. The mAP compares the ground-truth bounding box to the detected box and returns a score. The higher the score, the more accurate the model is in its detections.
+    3. How are you calculating social distance among the people?
+    4. What is camera deployment angle? And calibration height of the camera to calculate the distancing bewteen people?
+    5. Why didn’t you choose any other state of the art model, as of now YOLOv4 or YOLOv5?
+    6. Why inception net in the backend? What was your vision in choosing that?
+    7. What are the all loss functions you used in training or developing the whole model?
+    8. How is the topology of the Region Proposal Network?
+    9. Brief the increamental development in the InceptionNet networks?
+    10. Training machine configuration:
+    11. How faster rcnn is better than rcnn and fast rcnn?
+
+
+
+Background Removal of Videos: U-Net
+
+    • Use Case: The target of this project was to remove the real background from the videos and adding the custom background instead. Meaning, for example in today’s time most of us working from the home. In meetings we need to be there but don’t want reveal what’s there in our background. Even could add custom background like company logo or any other images in the backgroound. 
+    • Data: We had received data from clients, but the data wasn’t readily available for training. We were provided with human image with random background and its clipped form, i.e. retaining human class with white background. Then we had to create the greyscale masks out of that. Masks are like human will be with white or 255 pixel and rest will 0 pixel value. (Challenge) While doing so we were getting some blue and yellow patches on the masks, which we resolved by traversing each channel and chose the max value at same position in all channels and then replacing them with 255 pixel value. Thus we created our dataset.
+      
+    • Algorithm: Since this problem statement was of semantic segmentation, we went with Unet segmentation algorithm. It is 23 layers network, where the last layer being the 1x1 convolution layer with nclasses as the number of filters. We developed this from scratch. Unet architecture is like encoder (contracting path) and decoder(expansive path) part, where encoder or downsampling part, helps the model better understand WHAT is present in the image, but looses the information of WHERE it is present. And decoder or upsampling converts a low resolution image to a high resolution image to recover the WHERE information.
+      Encoder: is just a traditional stack of convolutional and max pooling layers.
+      Decoder: is used to enable precise localization using transposed convolutions.
+      Thus, it is an end-to-end fully convolutional neural network because of which it can accept images of any size.
+      Input size: hxwx3 and Output size: hxwxnclasses
+    • A prediction can be collapsed into a segmentation map by taking the argmax of each depth-wise pixel vector.
+    • Loss Function: Loss in our case we calculated using binary cross entropy. Even it can be calculated by using dice loss.
+
+
+
+
+
+
+
+      
+      
+      
+      
+    • All libraries used: Tensorflow, keras, matplotlib, opencv, scipy
+      
+    • Loss function: The most commonly used loss function for the task of image segmentation is a pixel-wise cross entropy loss. This loss examines each pixel individually, comparing the class predictions (depth-wise pixel vector) to our one-hot encoded target vector.
+      
+    • Model evaluation techniques: 
+        1. Intersection over union: 
+    • Challanges:
+        1. Data Preparation:
+        2. Flickering output: Even we saw during flickering our learning curve also had so many fluctuations, then we tried different batch sizes to make the learning more smoother and generalized. We found 8 as a appropriate batch size which we were using as 64 initially. So we know lower batch size generalizes the model well, and helps in better learning.
+        3. 
+    • Deployment:
+
+Interview Questions:
+    1. What all the things you tweaked to hypertune your model?
+    2. Why U-Net segmentation when there are already different state of the algorithms available?
+    3. Explain the topology of the U-Net architecture?
+    4. Which machine did you use while training your model? 
+
+
+
+Automatic Aggregate classifier (in Progress)
+
+    • Use case: This project was for a construction company. Basicaly, in the construction we have different concrete aggregates like 5 mm, 10 mm, 20 mm, 40 mm, again they had different sands like Mineral-sand and River-sand, and cement. So that constructon company has their vehicles with camera mounted on the vehicle. Their requirement was to classify these concrete aggregates based on the feed received from the camera.
+      
+    • Data: We had recevied data from our client.
+    • Algorithm: The algorithm part is very interesting we developed a resnet based architecture with SSD kind of topology. Our intution was like, distance plays major role in our case, for example 40 mm agregate can look like 20 mm from far view or 10 mm aggreate can look like 40 mm from closer view. And again, in real time distance calibration wasn’t really possible, therefore our intution was to extract all the features right from high level to low level same as SSD does, and concatenated all features extracted at different layers and used them for classification.
+    • Loss function and optimizer: Multi class cross entropy
+    • Model evaluation techniques:
+    • Challenges: Modeling distance parameter
+    • Deployment:
+
+Interview Questions:
+    1. How did you validate your model?
+    2. What all pre-processing steps you followed for this particular use case?
+    3. What other experiments you carried out in the quest of appropriate architecture? Did you try FPN topology?
+    4. Where are you planning to deploy this model?
+    5. What was the training machine configuration?
+
+
+
+
+General Interview Questions:
+    1. High recall but low precision: Precision is low means the denominator should have high value. And True positive will be a fixed number, it means high number of false positive causes low precision value. High recall means most of the positive predictions are correct.
+    2. High precision but low recall: Recall is low means the denominator value should be high. Therefore, low recall will have more number of false negative, causing lower recall. High precision means most of the prediction is positive and has lessd false positive.
+    3. F-Beta score: F-beta score
+       
+    4. Due to the importance of both precision and recall, there is a precision-recall curve the shows the tradeoff between the precision and recall values for different thresholds. This curve helps to select the best threshold to maximize both metrics.
+
+
+
+
+
+Next Month tasks:
+1.	Kinetics aproach of video classification based actions.
+2.	Background removal human data creation
+3.	Facebook AI reasearch (3D-CNN topics in line with our work, object detection)
+4.	Blog writing for video classification
+5.	Quarterly Review:
+
+
+Semantic segmentation, instance segmentation and panoptic segmentation.
+
+Loss Functions:
+    1. Quadratic loss or mean squared loss function
+    2. Likely hood loss or cross entropy loss
+    3. Huber loss: Smooth version of absolute value loss of the L1 loss
+    4. Mean absolute loss function
+    5. Contrastive loss: used in siamese network
+Q. What is the difference between Sequential and functional api model?
+Ans: In sequential model we go on stacking layers right from input to the the output, but in functinal api model we need to explicitly define the input and output layers, defining all the interconnected layers and passing it to the model constructor.
+Functional API:
+    1. Input: Define input to the model. 
+           from tetnsorflow.keras.layers import Layers
+           input = Input(shape=(28, 28))
+    2. Layers: Define a set of interconnected layers on the input in a functional syntax manner
+    3. Model: Define the model using input and output layers with the help of model object.
+           from tensorflow.keras.models import Model
+           func_model = Model(inputs=input, outputs = predictions)
+
+
+
